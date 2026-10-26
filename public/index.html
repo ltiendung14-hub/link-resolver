@@ -4,77 +4,171 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dark AI Studio — Link Resolver</title>
+  <meta name="theme-color" content="#090d1b">
+  <title>Dark AI Studio</title>
   <style>
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       min-height: 100vh;
+      padding: 24px 14px;
       display: grid;
       place-items: center;
-      padding: 20px;
-      background: #0b1020;
+      background:
+        radial-gradient(ellipse at top, #202451 0%, #090d1b 65%);
       color: #f5f7ff;
       font-family: system-ui, sans-serif;
     }
+
     main {
       width: 100%;
-      max-width: 560px;
+      max-width: 650px;
       padding: 26px;
-      border: 1px solid #303955;
+      background: rgba(18, 24, 46, .96);
+      border: 1px solid #343e65;
       border-radius: 20px;
-      background: #131a2e;
+      box-shadow: 0 20px 70px #0006;
     }
-    h1 { margin-top: 0; font-size: 27px; }
-    p { color: #b6c1dc; line-height: 1.6; }
+
+    .brand {
+      color: #a99aff;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 3px;
+    }
+
+    h1 { margin: 10px 0; font-size: 30px; }
+
+    p {
+      color: #b8c3df;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+
     input, button {
       width: 100%;
       padding: 14px;
       margin-top: 12px;
-      border-radius: 10px;
-      font-size: 16px;
+      border-radius: 11px;
+      font: inherit;
     }
+
     input {
-      border: 1px solid #475574;
-      background: #0b1020;
+      border: 1px solid #414d73;
+      background: #090d1b;
       color: white;
+      outline-color: #9c88ff;
     }
+
     button {
       border: 0;
-      background: #8064ff;
+      background: linear-gradient(100deg, #7058f5, #a05bff);
       color: white;
-      font-weight: 700;
+      font-weight: 800;
+      cursor: pointer;
     }
-    #result { overflow-wrap: anywhere; }
-    a { color: #b6a7ff; }
+
+    button:disabled { opacity: .6; }
+
+    .panel {
+      margin-top: 18px;
+      padding: 15px;
+      background: #0b1122;
+      border: 1px solid #303a5b;
+      border-radius: 12px;
+    }
+
+    .label {
+      color: #a99aff;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    a { color: #c0b4ff; overflow-wrap: anywhere; }
+
+    li {
+      margin: 10px 0;
+      overflow-wrap: anywhere;
+      color: #dce3f8;
+    }
+
+    .hidden { display: none; }
+
+    .warning { color: #ffd38a; }
+
+    footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #8895b5;
+    }
   </style>
 </head>
 <body>
   <main>
-    <h1>Dark AI Studio</h1>
-    <p>Link Resolver — kiểm tra liên kết và hướng dẫn xử lý.</p>
+    <div class="brand">DARK AI STUDIO</div>
+    <h1>Link Resolver</h1>
+    <p>
+      Kiểm tra chuyển hướng của liên kết HTTPS và xem địa chỉ
+      đích nếu máy chủ cho phép.
+    </p>
+
     <form id="form">
       <input
         id="url"
         type="url"
-        placeholder="Dán liên kết HTTPS tại đây..."
+        placeholder="Dán liên kết HTTPS vào đây..."
+        autocomplete="url"
         required
       >
-      <button id="submit" type="submit">Kiểm tra link</button>
+      <button id="submit" type="submit">Kiểm tra liên kết</button>
     </form>
-    <p id="result" role="status">Kết quả sẽ hiển thị tại đây.</p>
+
+    <p id="status" role="status">Sẵn sàng kiểm tra.</p>
+
+    <section id="results" class="hidden">
+      <div class="panel">
+        <div class="label">Link gốc</div>
+        <p id="original"></p>
+      </div>
+
+      <div class="panel">
+        <div class="label">Link đích</div>
+        <p id="destination"></p>
+        <a id="openLink" target="_blank"
+           rel="noopener noreferrer">Mở link đích</a>
+      </div>
+
+      <div class="panel">
+        <div class="label">Lịch sử chuyển hướng</div>
+        <ol id="history"></ol>
+      </div>
+
+      <p class="warning">
+        Lưu ý: Kết quả không bảo đảm trang web an toàn.
+        Không nhập mật khẩu, OTP hoặc thông tin cá nhân vào
+        trang không đáng tin cậy.
+      </p>
+    </section>
+
+    <footer>
+      Dark AI Studio · Công cụ kiểm tra liên kết cơ bản
+    </footer>
   </main>
 
   <script>
     const form = document.querySelector("#form");
     const input = document.querySelector("#url");
     const button = document.querySelector("#submit");
-    const result = document.querySelector("#result");
+    const status = document.querySelector("#status");
+    const results = document.querySelector("#results");
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       button.disabled = true;
-      result.textContent = "Đang kiểm tra...";
+      status.textContent = "Đang kiểm tra liên kết...";
+      results.classList.add("hidden");
 
       try {
         const response = await fetch("/api/resolve", {
@@ -86,20 +180,46 @@
         const data = await response.json();
 
         if (!response.ok || !data.ok) {
-          throw new Error(data.error || "Không thể kiểm tra link.");
+          throw new Error(data.error || "Không thể kiểm tra liên kết.");
         }
 
-        result.replaceChildren();
-        const message = document.createElement("p");
-        message.textContent = data.message;
-        const link = document.createElement("a");
-        link.href = data.url;
-        link.textContent = "Mở liên kết";
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        result.append(message, link);
+        document.querySelector("#original").textContent =
+          data.originalUrl || input.value.trim();
+
+        document.querySelector("#destination").textContent =
+          data.finalUrl || data.url || "Chưa xác định được link đích";
+
+        const openLink = document.querySelector("#openLink");
+        const destination = data.finalUrl || data.url;
+
+        if (destination) {
+          openLink.href = destination;
+          openLink.hidden = false;
+        } else {
+          openLink.hidden = true;
+        }
+
+        const list = document.querySelector("#history");
+        list.replaceChildren();
+
+        (data.history || []).forEach((url) => {
+          const item = document.createElement("li");
+          item.textContent = url;
+          list.appendChild(item);
+        });
+
+        if (!list.children.length) {
+          const item = document.createElement("li");
+          item.textContent = "Không có dữ liệu chuyển hướng.";
+          list.appendChild(item);
+        }
+
+        status.textContent =
+          data.message || "Đã kiểm tra xong.";
+        results.classList.remove("hidden");
       } catch (error) {
-        result.textContent = error.message || "Có lỗi xảy ra.";
+        status.textContent =
+          error.message || "Có lỗi xảy ra khi kiểm tra.";
       } finally {
         button.disabled = false;
       }
