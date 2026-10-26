@@ -1,0 +1,109 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dark AI Studio — Link Resolver</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: #0b1020;
+      color: #f5f7ff;
+      font-family: system-ui, sans-serif;
+    }
+    main {
+      width: 100%;
+      max-width: 560px;
+      padding: 26px;
+      border: 1px solid #303955;
+      border-radius: 20px;
+      background: #131a2e;
+    }
+    h1 { margin-top: 0; font-size: 27px; }
+    p { color: #b6c1dc; line-height: 1.6; }
+    input, button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 12px;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+    input {
+      border: 1px solid #475574;
+      background: #0b1020;
+      color: white;
+    }
+    button {
+      border: 0;
+      background: #8064ff;
+      color: white;
+      font-weight: 700;
+    }
+    #result { overflow-wrap: anywhere; }
+    a { color: #b6a7ff; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Dark AI Studio</h1>
+    <p>Link Resolver — kiểm tra liên kết và hướng dẫn xử lý.</p>
+    <form id="form">
+      <input
+        id="url"
+        type="url"
+        placeholder="Dán liên kết HTTPS tại đây..."
+        required
+      >
+      <button id="submit" type="submit">Kiểm tra link</button>
+    </form>
+    <p id="result" role="status">Kết quả sẽ hiển thị tại đây.</p>
+  </main>
+
+  <script>
+    const form = document.querySelector("#form");
+    const input = document.querySelector("#url");
+    const button = document.querySelector("#submit");
+    const result = document.querySelector("#result");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      button.disabled = true;
+      result.textContent = "Đang kiểm tra...";
+
+      try {
+        const response = await fetch("/api/resolve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: input.value.trim() })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || "Không thể kiểm tra link.");
+        }
+
+        result.replaceChildren();
+        const message = document.createElement("p");
+        message.textContent = data.message;
+        const link = document.createElement("a");
+        link.href = data.url;
+        link.textContent = "Mở liên kết";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        result.append(message, link);
+      } catch (error) {
+        result.textContent = error.message || "Có lỗi xảy ra.";
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
